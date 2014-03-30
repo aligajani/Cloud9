@@ -185,9 +185,12 @@ public class BigramRelativeFrequency extends Configured implements Tool {
     LOG.info(" - output path: " + outputPath);
     LOG.info(" - num reducers: " + reduceTasks);
 
-    Job job = Job.getInstance(getConf());
-    job.setJobName(BigramRelativeFrequency.class.getSimpleName());
-    job.setJarByClass(BigramRelativeFrequency.class);
+    //New settings to ensure it works fine on AWS
+    //Ensures that it doesn't throw errors for line 214
+    
+    Configuration conf =  new Configuration ();
+		Job job = new Job(conf, "BigramRelativeFrequency");
+		job.setJarByClass(BigramRelativeFrequency.class);
 
     job.setNumReduceTasks(reduceTasks);
 
@@ -198,7 +201,9 @@ public class BigramRelativeFrequency extends Configured implements Tool {
     job.setMapOutputValueClass(FloatWritable.class);
     job.setOutputKeyClass(PairOfStrings.class);
     job.setOutputValueClass(FloatWritable.class);
-    job.setOutputFormatClass(SequenceFileOutputFormat.class);
+    
+    //Disable this to prevent outputing raw bytes
+    //job.setOutputFormatClass(SequenceFileOutputFormat.class);
 
     job.setMapperClass(MyMapper.class);
     job.setCombinerClass(MyCombiner.class);
@@ -207,8 +212,8 @@ public class BigramRelativeFrequency extends Configured implements Tool {
 
     // Delete the output directory if it exists already.
     Path outputDir = new Path(outputPath);
-    FileSystem.get(getConf()).delete(outputDir, true);
-
+    FileSystem.get(outputDir.toUri(), conf).delete(outputDir, true);
+		
     long startTime = System.currentTimeMillis();
     job.waitForCompletion(true);
     System.out.println("Job Finished in " + (System.currentTimeMillis() - startTime) / 1000.0 + " seconds");
